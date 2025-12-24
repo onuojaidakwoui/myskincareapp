@@ -1,9 +1,173 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { AppStep, SkincareAnswers, JawlineAnswers, AnalysisData } from './types';
-import { analyzeFaceAndRoutine } from './services/geminiService';
+import { GoogleGenAI, Type } from "@google/genai";
 import {
   Camera,
   ChevronLeft,
+  ChevronRight,
+  ShieldCheck,
+  Sparkles,
+  Activity,
+  User,
+  XCircle,
+  RefreshCcw,
+  Droplets,
+  Zap,
+  Sun,
+  CheckCircle,
+  Circle,
+  ShoppingCart,
+  ExternalLink
+} from 'lucide-react';
+
+// --- Types ---
+
+type AppStep = 'ONBOARDING' | 'SCAN' | 'SKINCARE_QUESTIONS' | 'JAWLINE_QUESTIONS' | 'ANALYZING' | 'RESULTS' | 'PRODUCT_SUGGESTIONS';
+
+interface ScanResult {
+  imageData: string;
+}
+
+interface SkincareAnswers {
+  afterWashFeel: string;
+  breakoutFreq: string;
+  sensitivity: string;
+  darkSpots: string;
+  washCount: string;
+  sunscreen: string;
+  budget: string;
+}
+
+interface JawlineAnswers {
+  symmetryPerception: string;
+  chewSide: string;
+  jawlineType: string;
+  posture: string;
+  sleepPosition: string;
+}
+
+interface AnalysisData {
+  skincare: {
+    skinType: string;
+    amRoutine: string[];
+    pmRoutine: string[];
+    categories: string[];
+    avoid: string[];
+    summary: string;
+  };
+  jawline: {
+    faceShape: string;
+    assessment: string;
+    asymmetryNote: string;
+    exercises: { name: string; reps: string; instructions: string }[];
+    habits: string[];
+  };
+}
+
+// --- Service ---
+
+const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY || '' });
+
+async function analyzeFaceAndRoutine(
+  imageData: string,
+  skincare: SkincareAnswers,
+  jawline: JawlineAnswers
+): Promise<AnalysisData> {
+  const prompt = `
+    Analyze the following facial data and questionnaire responses to provide a personalized, cosmetic-focused wellness guide.
+    
+    IMPORTANT GUIDELINES:
+    1. Do NOT make medical claims, diagnoses, or prescriptions.
+    2. Use wording like "suggests", "may help", and "based on your scan".
+    3. All advice must be cosmetic and advisory only.
+    4. When recommending specific routine steps, if appropriate for their skin type, prioritize categories where high-quality options like CeraVe (Cleansers), COSRX (Essences/Repair), Neutrogena (Moisturizers), and Biore (Sunscreens) are known to perform well.
+    5. For the jawline exercises, provide very detailed, step-by-step instructions for EACH exercise so the user knows exactly how to perform it (e.g., posture, muscle engagement, duration).
+    
+    INPUT DATA:
+    - User Image: (Analyzed as part of the vision model context)
+    - Skincare Context: ${JSON.stringify(skincare)}
+    - Jawline/Sculpt Context: ${JSON.stringify(jawline)}
+    
+    OUTPUT FORMAT:
+    Provide a detailed JSON response mapping to the AnalysisData interface.
+  `;
+
+  if (!import.meta.env.VITE_API_KEY) {
+    console.error("Missing API Key! Make sure VITE_API_KEY is set in your environment variables (.env.local or Host Settings).");
+    throw new Error("Missing API Key");
+  }
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-1.5-flash",
+      contents: [
+        {
+          parts: [
+            { text: prompt },
+            {
+              inlineData: {
+                mimeType: "image/jpeg",
+                data: imageData.split(',')[1] // remove data:image/jpeg;base64,
+              }
+            }
+          ]
+        }
+      ],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            skincare: {
+              type: Type.OBJECT,
+              properties: {
+                skinType: { type: Type.STRING },
+                amRoutine: { type: Type.ARRAY, items: { type: Type.STRING } },
+                pmRoutine: { type: Type.ARRAY, items: { type: Type.STRING } },
+                categories: { type: Type.ARRAY, items: { type: Type.STRING } },
+                avoid: { type: Type.ARRAY, items: { type: Type.STRING } },
+                summary: { type: Type.STRING }
+              },
+              required: ["skinType", "amRoutine", "pmRoutine", "categories", "avoid", "summary"]
+            },
+            jawline: {
+              type: Type.OBJECT,
+              properties: {
+                faceShape: { type: Type.STRING },
+                assessment: { type: Type.STRING },
+                asymmetryNote: { type: Type.STRING },
+                exercises: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      name: { type: Type.STRING },
+                      reps: { type: Type.STRING },
+                      instructions: { type: Type.STRING }
+                    },
+                    required: ["name", "reps", "instructions"]
+                  }
+                },
+                habits: { type: Type.ARRAY, items: { type: Type.STRING } }
+              },
+              required: ["faceShape", "assessment", "asymmetryNote", "exercises", "habits"]
+            }
+          },
+          required: ["skincare", "jawline"]
+        }
+      }
+    });
+
+    const text = response.text;
+    if (!text) {
+      throw new Error("Empty response from AI");
+    }
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("AI Analysis Failed:", error);
+    throw error;
+  }
+}
+ChevronLeft,
   ChevronRight,
   ShieldCheck,
   Sparkles,
