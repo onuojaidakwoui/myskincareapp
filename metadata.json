@@ -1,0 +1,7 @@
+{
+  "name": "Glow & Sculpt: Face Analysis",
+  "description": "A personalized aesthetic companion for skincare routines and jawline sculpting exercises based on advanced facial analysis.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
