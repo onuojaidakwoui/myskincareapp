@@ -1,7 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AppStep, SkincareAnswers, JawlineAnswers, AnalysisData } from './types';
-import { StepIndicator } from './components/StepIndicator';
-import { Button } from './components/Button';
 import { analyzeFaceAndRoutine } from './services/geminiService';
 import {
   Camera,
@@ -21,6 +19,59 @@ import {
   ShoppingCart,
   ExternalLink
 } from 'lucide-react';
+
+// --- Inlined Components ---
+
+interface StepIndicatorProps {
+  current: number;
+  total: number;
+}
+
+const StepIndicator: React.FC<StepIndicatorProps> = ({ current, total }) => {
+  return (
+    <div className="flex gap-1 w-full px-6 pt-4">
+      {Array.from({ length: total }).map((_, i) => (
+        <div
+          key={i}
+          className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${i <= current ? 'bg-indigo-600' : 'bg-gray-200'
+            }`}
+        />
+      ))}
+    </div>
+  );
+};
+
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'primary' | 'secondary' | 'outline' | 'pink' | 'blue';
+  fullWidth?: boolean;
+}
+
+const Button: React.FC<ButtonProps> = ({
+  children,
+  variant = 'primary',
+  fullWidth = false,
+  className = '',
+  ...props
+}) => {
+  const baseStyles = "py-4 px-6 rounded-2xl font-semibold transition-all active:scale-95 disabled:opacity-50 disabled:active:scale-100 flex items-center justify-center gap-2";
+
+  const variants = {
+    primary: "bg-indigo-600 text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700",
+    secondary: "bg-gray-100 text-gray-900 hover:bg-gray-200",
+    outline: "border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50",
+    pink: "bg-rose-500 text-white shadow-lg shadow-rose-200 hover:bg-rose-600",
+    blue: "bg-sky-600 text-white shadow-lg shadow-sky-200 hover:bg-sky-700"
+  };
+
+  return (
+    <button
+      className={`${baseStyles} ${variants[variant]} ${fullWidth ? 'w-full' : ''} ${className}`}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+};
 
 // --- Sub-components ---
 
